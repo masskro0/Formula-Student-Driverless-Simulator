@@ -16,16 +16,16 @@
         "RC":{
             "RemoteControlID": -1
         },
-        "sensors": {
-          "imu" : {
+        "Sensors": {
+          "Imu" : {
             "SensorType": 2,
             "Enabled": true
           },
-          "gps" : {
+          "Gps" : {
             "SensorType": 3,
             "Enabled": true
           },
-          "lidar": {
+          "Lidar": {
             "SensorType": 6,
             "Enabled": true,
             "X": 0.45, "Y": 0, "Z": 0.55,
@@ -40,13 +40,13 @@
             "DrawDebugPoints": false
           }
         },
-        "cameras": {
+        "Cameras": {
           "cam_left_RGB": {
             "CaptureSettings": [
             {
                 "ImageType": 0,
-                "Width": 4056,
-                "Height": 3040,
+                "Width": 1920,
+                "Height": 1080,
                 "FOV_Degrees": 78
             }
             ],
@@ -77,8 +77,8 @@
             "CaptureSettings": [
               {
                 "ImageType": 0,
-                "Width": 4056,
-                "Height": 3040,
+                "Width": 1920,
+                "Height": 1080,
                 "FOV_Degrees": 78
               }
             ],
@@ -89,14 +89,14 @@
             "Roll": 0.0,
             "Yaw": 0.5
           },
-          "cam_right_depth": {
+          "cam_left_depth": {
             "CaptureSettings": [
-              {
+            {
                 "ImageType": 2,
                 "Width": 1280,
                 "Height": 800,
                 "FOV_Degrees": 90
-              }
+            }
             ],
             "X": 0.5,
             "Y": -0.1,
