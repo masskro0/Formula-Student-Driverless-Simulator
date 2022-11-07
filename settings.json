@@ -16,80 +16,94 @@
         "RC":{
             "RemoteControlID": -1
         },
-        "Sensors": {
-          "Imu" : {
+        "sensors": {
+          "imu" : {
             "SensorType": 2,
             "Enabled": true
           },
-          "Gps" : {
+          "gps" : {
             "SensorType": 3,
             "Enabled": true
           },
-          "Lidar1": {
+          "lidar": {
             "SensorType": 6,
             "Enabled": true,
             "X": 0.45, "Y": 0, "Z": 0.55,
             "Roll": 0, "Pitch": 0, "Yaw" : 0,
-            "NumberOfLasers": 4,
-            "PointsPerScan": 4096,
-            "VerticalFOVUpper": 5,
-            "VerticalFOVLower": -5,
-            "HorizontalFOVStart": -90,
-            "HorizontalFOVEnd": 90,
-            "RotationsPerSecond": 10,
+            "NumberOfLasers": 16,
+            "PointsPerScan": 327680,
+            "VerticalFOVUpper": 17,
+            "VerticalFOVLower": -17,
+            "HorizontalFOVStart": 90,
+            "HorizontalFOVEnd": -270,
+            "RotationsPerSecond": 10000000,
             "DrawDebugPoints": false
-          },
-          "Lidar2": {
-            "SensorType": 6,
-            "Enabled": true,
-            "X": 1.20, "Y": 0, "Z": 0.2,
-            "Roll": 0, "Pitch": 0, "Yaw" : 0,
-            "NumberOfLasers": 4,
-            "PointsPerScan": 4096,
-            "VerticalFOVUpper": 5,
-            "VerticalFOVLower": -5,
-            "HorizontalFOVStart": -90,
-            "HorizontalFOVEnd": 90,
-            "RotationsPerSecond": 5,
-            "DrawDebugPoints": false
-          },
-          "GSS" : {
-            "SensorType": 7,
-            "Enabled": true
           }
         },
-        "Cameras": {
-          "cam1": {
+        "cameras": {
+          "cam_left_RGB": {
             "CaptureSettings": [
             {
                 "ImageType": 0,
-                "Width": 785,
-                "Height": 785,
+                "Width": 4056,
+                "Height": 3040,
+                "FOV_Degrees": 78
+            }
+            ],
+            "X": 0.5,
+            "Y": 0.1,
+            "Z": 0.8,
+            "Pitch": 0.33,
+            "Roll": 0.0,
+            "Yaw": -0.5
+          },
+          "cam_left_depth": {
+            "CaptureSettings": [
+            {
+                "ImageType": 2,
+                "Width": 1280,
+                "Height": 800,
                 "FOV_Degrees": 90
             }
             ],
-            "X": -0.3,
-            "Y": -0.16,
+            "X": 0.5,
+            "Y": 0.1,
             "Z": 0.8,
-            "Pitch": 0.0,
+            "Pitch": 0.33,
             "Roll": 0.0,
-            "Yaw": 0
-        },
-          "cam2": {
+            "Yaw": -0.5
+          },
+          "cam_right_RGB": {
             "CaptureSettings": [
               {
                 "ImageType": 0,
-                "Width": 785,
-                "Height": 785,
+                "Width": 4056,
+                "Height": 3040,
+                "FOV_Degrees": 78
+              }
+            ],
+            "X": 0.5,
+            "Y": -0.1,
+            "Z": 0.8,
+            "Pitch": 0.33,
+            "Roll": 0.0,
+            "Yaw": 0.5
+          },
+          "cam_right_depth": {
+            "CaptureSettings": [
+              {
+                "ImageType": 2,
+                "Width": 1280,
+                "Height": 800,
                 "FOV_Degrees": 90
               }
             ],
-            "X": -0.3,
-            "Y": 0.16,
+            "X": 0.5,
+            "Y": -0.1,
             "Z": 0.8,
-            "Pitch": 0.0,
+            "Pitch": 0.33,
             "Roll": 0.0,
-            "Yaw": 0.0
+            "Yaw": 0.5
           }
         },
         "X": 2, "Y": 0, "Z": 0,
