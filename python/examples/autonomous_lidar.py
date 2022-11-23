@@ -196,13 +196,20 @@ def init_yolov7():
     return model, stride, names, colors, old_img_w, old_img_h, old_img_b
     
     
+def get_cone_distance(depth_img, xyxy, img_shape):
+    depth_vals = []
+    for y in range(xyxy[3] - xyxy[1] + 1):
+        base = img_shape[1] * (xyxy[1] + y)
+        depth_vals.extend(depth_img[base + xyxy[0] : base + xyxy[2] + 1])
+    return min(depth_vals)
+    
+    
 model, stride, names, colors, old_img_w, old_img_h, old_img_b = init_yolov7()   
 
 
-def detect(im0, frame): 
+def detect(im0, depth_img, frame): 
     global model, img_size, stride, device, conf_thres, iou_thres
     img = letterbox(im0, img_size, stride=stride)[0]
-    #img = cv2.resize(img, (img_size, img_size), interpolation=cv2.INTER_LINEAR)
     img = img[:, :, ::-1].transpose(2, 0, 1)
     img = np.ascontiguousarray(img)
     img = torch.from_numpy(img).to(device)
@@ -222,9 +229,10 @@ def detect(im0, frame):
 
             # Write results
             for *xyxy, conf, cls in reversed(det):
+                depth = get_cone_distance(depth_img, (int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])), im0.shape)
                 label = f'{names[int(cls)]} {conf:.2f}'
-                plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
-
+                plot_one_box(xyxy, im0, depth, label=label, color=colors[int(cls)], line_thickness=1)
+                
         # Stream results
         cv2.imshow(frame, im0)
         cv2.waitKey(1)  # 1 millisecond
@@ -242,14 +250,13 @@ if __name__ == "__main__":
             
         left_rgb_request = fsds.ImageRequest(camera_name='cam_left_RGB', image_type=fsds.ImageType.Scene, pixels_as_float=False, compress=True)
         right_rgb_request = fsds.ImageRequest(camera_name='cam_right_RGB', image_type=fsds.ImageType.Scene, pixels_as_float=False, compress=True)
-        left_depth_request = fsds.ImageRequest(camera_name='cam_left_depth', image_type=fsds.ImageType.DepthPerspective, pixels_as_float=True, compress=True)
-        right_depth_request = fsds.ImageRequest(camera_name='cam_right_depth', image_type=fsds.ImageType.DepthPerspective, pixels_as_float=True, compress=True)
+        left_depth_request = fsds.ImageRequest(camera_name='cam_left_depth', image_type=fsds.ImageType.DepthPerspective, pixels_as_float=True, compress=False)
+        right_depth_request = fsds.ImageRequest(camera_name='cam_right_depth', image_type=fsds.ImageType.DepthPerspective, pixels_as_float=True, compress=False)
         img_left, img_right, img_left_depth, img_right_depth = client.simGetImages([left_rgb_request, right_rgb_request,\
                                                                                     left_depth_request, right_depth_request], vehicle_name = 'FSCar')
-        
         img_left = cv2.imdecode(np.frombuffer(img_left.image_data_uint8, dtype="uint8"), cv2.IMREAD_COLOR)
         img_right = cv2.imdecode(np.frombuffer(img_right.image_data_uint8, dtype="uint8"), cv2.IMREAD_COLOR)
-
-        detect(img_left, "left")
-        detect(img_right, "right")        
+        
+        detect(img_left, img_left_depth.image_data_float, "left")
+        detect(img_right, img_right_depth.image_data_float, "right")        
 

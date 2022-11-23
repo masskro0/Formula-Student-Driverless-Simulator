@@ -32,15 +32,15 @@
           "Lidar": {
             "SensorType": 6,
             "Enabled": true,
-            "X": 0.45, "Y": 0, "Z": 0.55,
-            "Roll": 0, "Pitch": 0, "Yaw" : 0,
-            "NumberOfLasers": 1,
-            "PointsPerScan": 1000,
-            "VerticalFOVUpper": 0,
-            "VerticalFOVLower": 0,
-            "HorizontalFOVStart": 90,
-            "HorizontalFOVEnd": -270,
-            "RotationsPerSecond": 10,
+            "X": -0.40, "Y": 0, "Z": 0.8,
+            "Roll": 0, "Pitch": 18, "Yaw" : 0,
+            "NumberOfLasers": 16,
+            "PointsPerScan": 8192,
+            "VerticalFOVUpper": -16.6,
+            "VerticalFOVLower": 16.6,
+            "HorizontalFOVStart": -90,
+            "HorizontalFOVEnd": 90,  
+            "RotationsPerSecond": 1,
             "DrawDebugPoints": false
           },
           "Lidar_driving": {
@@ -81,7 +81,7 @@
                 "ImageType": 2,
                 "Width": 900,
                 "Height": 506,
-                "FOV_Degrees": 90
+                "FOV_Degrees": 78
             }
             ],
             "X": 0.5,
@@ -113,7 +113,7 @@
                 "ImageType": 2,
                 "Width": 900,
                 "Height": 506,
-                "FOV_Degrees": 90
+                "FOV_Degrees": 78
             }
             ],
             "X": 0.5,
