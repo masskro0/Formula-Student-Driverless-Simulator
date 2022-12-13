@@ -14,9 +14,78 @@ from pathlib import Path
 ## adds the fsds package located the parent directory to the python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import fsds
+
 from models.common import Conv
 from utils.general import non_max_suppression, scale_coords, xyxy2xywh
 from utils.plots import plot_one_box
+
+import rospy
+import tf
+from geometry_msgs.msg import PointStamped, Point
+from std_msgs.msg import Header
+from typing import List, Tuple, Dict
+from datetime import datetime
+from octanes_msgs.msg import ConeArray, Cone, ConePosition, ConeConfidence
+import scipy.spatial
+from utils.utils import DisjointSet
+
+ConeType = Tuple[PointStamped, int, float]
+
+
+class CameraPublisher:
+    pubs_cam: Dict[str, List[rospy.Publisher]] = []
+
+    camera_names = ["l", "r"]
+    camera_images = ["rgb", "bb"]
+
+    def __init__(self):
+        rospy.init_node('simulation_yolov7')
+        self.pub_cone_pos = rospy.Publisher('/sensorfusion/cone_pos', ConeArray, queue_size=10)
+        self.transform_listener = tf.TransformListener()
+
+    def transform_and_publish(self, cameras: List[List[Tuple[PointStamped, int, float]]]):
+        cone_array: List[Cone] = []
+        stamp = rospy.rostime.get_rostime()  # TODO: Average instead of taking last
+        for camera_cones in cameras:
+            if len(camera_cones) > 0:
+                stamp = camera_cones[0][0].header.stamp
+
+            for point, label, confidence in camera_cones:
+                point_transformed = self.transform_listener.transformPoint("base_link", point).point
+                x, y, z = point_transformed.x, point_transformed.y, point_transformed.z
+
+                confidences = [0, 0, 0, 0]
+                confidences[label] = confidence
+                cone_array.append(
+                    Cone(position=ConePosition(x, y), confidence=ConeConfidence(*confidences), type=label + 1))
+
+        if len(cone_array) > 0:
+            # Stretch points for distance calc to account for depth inaccuracy and l/r pos accuracy
+            points = np.array([np.array([c.position.x * 0.4, c.position.y * 2.0]) for c in cone_array])
+            tree = scipy.spatial.cKDTree(points)
+            ds = DisjointSet()
+            is_dup: Set[int] = set()
+            for a, b in tree.query_pairs(0.5):
+                ds.add(a, b)
+                is_dup = is_dup.union([a, b])
+            for group in ds.group.values():
+                x = sum([cone_array[i].position.x for i in group]) / len(group)
+                y = sum([cone_array[i].position.y for i in group]) / len(group)
+                confidence = [sum([getattr(cone_array[i].confidence, c) for i in group]) / len(group) for c in
+                              ConeConfidence.__slots__]
+                cone_array.append(
+                    Cone(position=ConePosition(x, y), confidence=ConeConfidence(*confidences),
+                         type=np.argmax(confidence) + 1))
+            for i in sorted(is_dup, reverse=True):
+                del cone_array[i]
+        if len(cone_array) >= 2:
+            cone_array_msg = ConeArray(cones=cone_array)
+            cone_array_msg.header.frame_id = 'base_link'
+            cone_array_msg.header.stamp = stamp
+            self.pub_cone_pos.publish(cone_array_msg)
+
+
+
 
 # connect to the simulator 
 client = fsds.FSDSClient()
@@ -131,6 +200,7 @@ def attempt_load(weights, map_location=None):
     model = Ensemble()
     for w in weights if isinstance(weights, list) else [weights]:
         ckpt = torch.load(w, map_location=map_location)  # load
+        print(ckpt)
         model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval())  # FP32 model
     
     # Compatibility updates
@@ -197,11 +267,13 @@ def init_yolov7():
     
     
 def get_cone_distance(depth_img, xyxy, img_shape):
-    depth_vals = []
-    for y in range(xyxy[3] - xyxy[1] + 1):
-        base = img_shape[1] * (xyxy[1] + y)
-        depth_vals.extend(depth_img[base + xyxy[0] : base + xyxy[2] + 1])
-    return min(depth_vals)
+    idx = img_shape[1] * ((xyxy[3] + xyxy[1]) // 2) + ((xyxy[2] + xyxy[0]) // 2)
+    return depth_img[idx]
+    #depth_vals = []
+    #for y in range(xyxy[3] - xyxy[1] + 1):
+    #    base = img_shape[1] * (xyxy[1] + y)
+    #    depth_vals.extend(depth_img[base + xyxy[0] : base + xyxy[2] + 1])
+    #return min(depth_vals)
     
     
 model, stride, names, colors, old_img_w, old_img_h, old_img_b = init_yolov7()   
@@ -221,33 +293,39 @@ def detect(im0, depth_img, frame):
         pred = model(img, augment=False)[0]
     pred = non_max_suppression(pred, conf_thres, iou_thres, classes=None, agnostic=False)
     
+    cone_array: List[ConeType] = []
+    
     # Process detections
     for i, det in enumerate(pred):  # detections per image
         if len(det):
             # Rescale boxes from img_size to im0 size
             det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
+            timestamp = rospy.Time.from_sec((datetime.now()).timestamp())
+
             # Write results
             for *xyxy, conf, cls in reversed(det):
                 depth = get_cone_distance(depth_img, (int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])), im0.shape)
+                Y = -(depth * 1000) / 555.70372044077 * ((int(xyxy[2]) + int(xyxy[0])) / 2 - 450) / 1000
+                X = math.sqrt(((depth * 1000) ** 2) - ((Y * 1000) ** 2) - (825 ** 2))
                 label = f'{names[int(cls)]} {conf:.2f}'
-                plot_one_box(xyxy, im0, depth, label=label, color=colors[int(cls)], line_thickness=1)
-                
-        # Stream results
-        cv2.imshow(frame, im0)
-        cv2.waitKey(1)  # 1 millisecond
+                cone_array.append((PointStamped(
+                                   Header(0, timestamp, "cam_" + frame + "_link"),
+                                   Point(X / 1000.0, Y, 0)), int(cls), float(conf)))
+                plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
+
+    #cv2.imwrite("coordinate.png", im0)
+    
+    # Stream results
+    #cv2.imshow(frame, im0)
+    #cv2.waitKey(1)  # 1 millisecond
+    return cone_array
+        
 
 
 if __name__ == "__main__":
+    publisher = CameraPublisher()
     while True:    
-        cones = find_cones()
-        if len(cones) != 0:
-            car_controls = fsds.CarControls()
-            car_controls.steering = calculate_steering(cones)
-            car_controls.throttle = calculate_throttle()
-            car_controls.brake = 0
-            client.setCarControls(car_controls)
-            
         left_rgb_request = fsds.ImageRequest(camera_name='cam_left_RGB', image_type=fsds.ImageType.Scene, pixels_as_float=False, compress=True)
         right_rgb_request = fsds.ImageRequest(camera_name='cam_right_RGB', image_type=fsds.ImageType.Scene, pixels_as_float=False, compress=True)
         left_depth_request = fsds.ImageRequest(camera_name='cam_left_depth', image_type=fsds.ImageType.DepthPerspective, pixels_as_float=True, compress=False)
@@ -257,6 +335,17 @@ if __name__ == "__main__":
         img_left = cv2.imdecode(np.frombuffer(img_left.image_data_uint8, dtype="uint8"), cv2.IMREAD_COLOR)
         img_right = cv2.imdecode(np.frombuffer(img_right.image_data_uint8, dtype="uint8"), cv2.IMREAD_COLOR)
         
-        detect(img_left, img_left_depth.image_data_float, "left")
-        detect(img_right, img_right_depth.image_data_float, "right")        
+        cone_arrays: List[List[ConeType]] = []
+        
+        cone_arrays.append(detect(img_left, img_left_depth.image_data_float, "left"))
+        cone_arrays.append(detect(img_right, img_right_depth.image_data_float, "right"))
+        
+        publisher.transform_and_publish(cone_arrays)
 
+        cones = find_cones()
+        if len(cones) != 0:
+            car_controls = fsds.CarControls()
+            car_controls.steering = calculate_steering(cones)
+            car_controls.throttle = calculate_throttle()
+            car_controls.brake = 0
+            #client.setCarControls(car_controls)
