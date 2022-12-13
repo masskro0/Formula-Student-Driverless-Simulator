@@ -32,10 +32,6 @@
 		<node pkg="fsds_ros_bridge" name="cameralauncher" type="cameralauncher.py" output="screen"  required="true">
 			<param name="host_ip" type="string" value="$(arg host)" />
 		</node>
-		
-		<node pkg="tf2_ros" type="static_transform_publisher" name="octanes_simulation_yolov7_tf_left" args="-0.4 0.1 0.85 0,471239 -0,314159 0 base_link cam_left_link"/>
-    <node pkg="tf2_ros" type="static_transform_publisher" name="octanes_simulation_yolov7_tf_right" args="-0.4 -0.1 0.85 -0,471239 -0,314159 0 base_link cam_right_link"/>
-
 	</group>
 
 	<group if="$(arg plot)">
