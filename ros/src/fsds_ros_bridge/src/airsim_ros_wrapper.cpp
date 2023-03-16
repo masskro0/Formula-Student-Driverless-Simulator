@@ -184,9 +184,9 @@ void AirsimROSWrapper::create_ros_pubs_from_settings_json()
         nh_private_.getParam("UDP_control", UDP_control);
 
         if(UDP_control){
-            control_cmd_sub = nh_.subscribe<fs_msgs::ControlCommand>("control_command", 1, boost::bind(&AirsimROSWrapper::car_control_cb, this, _1, vehicle_name), NULL, ros::TransportHints().udp());
+            control_cmd_sub = nh_.subscribe<geometry_msgs::PointStamped>("control_command", 1, boost::bind(&AirsimROSWrapper::car_control_cb, this, _1, vehicle_name), NULL, ros::TransportHints().udp());
         } else {
-            control_cmd_sub = nh_.subscribe<fs_msgs::ControlCommand>("control_command", 1, boost::bind(&AirsimROSWrapper::car_control_cb, this, _1, vehicle_name));
+            control_cmd_sub = nh_.subscribe<geometry_msgs::PointStamped>("control_command", 1, boost::bind(&AirsimROSWrapper::car_control_cb, this, _1, vehicle_name));
         }
 
         if(!competition_mode_) {
@@ -395,15 +395,15 @@ sensor_msgs::NavSatFix AirsimROSWrapper::get_gps_sensor_msg_from_airsim_geo_poin
     return gps_msg;
 }
 
-void AirsimROSWrapper::car_control_cb(const fs_msgs::ControlCommand::ConstPtr& msg, const std::string& vehicle_name)
+void AirsimROSWrapper::car_control_cb(const geometry_msgs::PointStamped::ConstPtr& msg, const std::string& vehicle_name)
 {
     ros_bridge::ROSMsgCounter counter(&control_cmd_sub_statistics);
 
     // Only allow positive braking and throttle commands to be passed through
     CarApiBase::CarControls controls;
-    controls.throttle = msg->throttle < 0.0 ? 0.0 : msg->throttle;
-    controls.steering = msg->steering;
-    controls.brake = msg->brake < 0.0 ? 0.0 : msg->brake;
+    controls.throttle = msg->point.x < 0.0 ? 0.0 : msg->point.x;
+    controls.steering = msg->point.y;
+    controls.brake = msg->point.z < 0.0 ? 0.0 : msg->point.z;
     ros::Time time = msg->header.stamp;
 
     {

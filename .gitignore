@@ -1,5 +1,7 @@
 .vscode/
 operator/logs/
+.idea/
+.catkin_workspace
 
 # Inside the simulator folder the compiled version of the UE4Project will be placed which shouldn't be committed.
 simulator/

@@ -13,7 +13,6 @@ STRICT_MODE_OFF //todo what does this do?
 #include "sensors/imu/ImuBase.hpp"
 #include "vehicles/car/api/CarRpcLibClient.hpp"
 #include "yaml-cpp/yaml.h"
-#include <fs_msgs/ControlCommand.h>
 #include <fs_msgs/Reset.h>
 #include <fs_msgs/GoSignal.h>
 #include <fs_msgs/FinishedSignal.h>
@@ -21,6 +20,7 @@ STRICT_MODE_OFF //todo what does this do?
 #include <fs_msgs/ExtraInfo.h>
 #include <chrono>
 #include <cv_bridge/cv_bridge.h>
+#include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/TwistWithCovarianceStamped.h>
@@ -125,7 +125,7 @@ private:
     void imu_timer_cb(const ros::TimerEvent& event);
     void gss_timer_cb(const ros::TimerEvent& event);
     void statictf_cb(const ros::TimerEvent& event);
-    void car_control_cb(const fs_msgs::ControlCommand::ConstPtr& msg, const std::string& vehicle_name);
+    void car_control_cb(const geometry_msgs::PointStamped::ConstPtr& msg, const std::string& vehicle_name);
     void lidar_timer_cb(const ros::TimerEvent& event, const std::string& camera_name, const int lidar_index);
     void statistics_timer_cb(const ros::TimerEvent& event);
     void go_signal_timer_cb(const ros::TimerEvent& event);
